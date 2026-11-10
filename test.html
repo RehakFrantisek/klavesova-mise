@@ -100,19 +100,13 @@ document.getElementById('f').onload = async () => {
     const first = w.eval('T.queue[0]'); const wrong = 'cvxazysfbiup'.split('').find(k => k !== first);
     key(wrong); ok(w.eval('T.mistakes') === 1 && w.eval('T.i') === 0, 'training wrong key: mistake, same task');
     key(first, { shiftKey: true }); ok(w.eval('T.i') === 0, 'shift ignored');
-    $('tHint').click(); ok(d.querySelector('.kb .key.hint'), 'hint highlights key');
+    $('tHint').click(); ok($('tFeedback').textContent.includes('Ctrl +'), 'hint shows shortcut text');
     for (let i = 0; i < 12; i++) { while (Date.now() < w.eval('T.lock')) await sleep(30); key(w.eval('T.queue[T.i]')); await sleep(480); }
     await sleep(100);
     ok(w.eval('screen') === 'trainEnd', 'training ended after 12');
     ok(w.eval('T.score') > 0 && w.eval('T.hints') === 1, 'score counted, 1 hint');
     ok(w.eval('data.best') !== null, 'record saved');
 
-    // Virtuální Ctrl
-    $('teAgain').click();
-    const k0 = w.eval('T.queue[0]');
-    d.querySelector('#train .kb [data-k="ctrl"]').click();
-    d.dispatchEvent(new w.KeyboardEvent('keydown', { key: k0, bubbles: true, cancelable: true }));
-    ok(w.eval('T.i') === 1, 'virtual Ctrl + key works');
     d.querySelector('[data-home]').click();
     w.eval('goHome()'); ok(w.eval('screen') === 'home', 'back home');
     ok(d.querySelectorAll('.chapter:disabled').length === 0, 'all chapters unlocked');

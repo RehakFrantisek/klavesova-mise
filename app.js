@@ -251,53 +251,6 @@ function show(id) {
   screen = id;
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('hidden', s.id !== id));
   window.scrollTo({ top: 0 });
-  setVctrl(false);
-}
-
-/* ---------- Klávesnice na obrazovce ---------- */
-const KB_ROWS = [['q', 'w', 'e', 'r', 't', 'z', 'u', 'i', 'o', 'p'], ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'], ['shift', 'y', 'x', 'c', 'v', 'b', 'n', 'm'], ['ctrl', 'space']];
-let vctrl = false;
-function buildKeyboards() {
-  document.querySelectorAll('[data-kb]').forEach(kb => {
-    kb.replaceChildren(...KB_ROWS.map(row => {
-      const r = document.createElement('div'); r.className = 'kb-row';
-      for (const k of row) {
-        const b = document.createElement('button');
-        b.type = 'button'; b.className = 'key k-' + k; b.dataset.k = k; b.tabIndex = -1;
-        b.textContent = k === 'ctrl' ? 'Ctrl' : k === 'shift' ? '⇧ Shift' : k === 'space' ? '' : k.toUpperCase();
-        if (k === 'ctrl') b.setAttribute('aria-pressed', 'false');
-        b.addEventListener('mousedown', e => e.preventDefault());
-        b.addEventListener('click', () => onScreenKey(k));
-        r.append(b);
-      }
-      return r;
-    }));
-  });
-}
-function keysOf(k) { return document.querySelectorAll(`.kb [data-k="${k}"]`); }
-function kbCtrl(on) { keysOf('ctrl').forEach(b => b.classList.toggle('down', on || vctrl)); }
-function setVctrl(on) {
-  vctrl = on;
-  keysOf('ctrl').forEach(b => { b.classList.toggle('down', on); b.classList.toggle('sticky', on); b.setAttribute('aria-pressed', String(on)); });
-}
-function kbFlash(k, result) {
-  keysOf(k).forEach(b => {
-    b.classList.remove('ok', 'bad', 'plain'); void b.offsetWidth;
-    b.classList.add('down', result || 'plain');
-    setTimeout(() => b.classList.remove('down', 'ok', 'bad', 'plain'), 450);
-  });
-}
-function kbHint(k) {
-  document.querySelectorAll('.kb .hint').forEach(b => b.classList.remove('hint'));
-  if (!k) return;
-  keysOf(k).forEach(b => b.classList.add('hint'));
-  keysOf('ctrl').forEach(b => b.classList.add('hint'));
-}
-function onScreenKey(k) {
-  if (k === 'ctrl') { setVctrl(!vctrl); sfx.tick(); notice(vctrl ? 'Ctrl je zapnutý – teď zmáčkni písmeno.' : 'Ctrl vypnutý.', 'info'); return; }
-  if (k === 'shift' || k === 'space') return;
-  if (vctrl) { setVctrl(false); shortcut(k, false); }
-  else { kbFlash(k); notice('Samotné písmeno nestačí – nejdřív Ctrl!', 'info'); }
 }
 
 /* ---------- Vstup z klávesnice ---------- */
@@ -308,19 +261,16 @@ function keyLetter(e) {
   return null;
 }
 function onKeyDown(e) {
-  if (e.key === 'Control' || e.key === 'Meta') { kbCtrl(true); return; }
   if (screen !== 'story' && screen !== 'train') return;
   const realMod = e.ctrlKey || e.metaKey;
   if (screen === 'story' && e.target === $('searchInput') && !realMod) return; // psaní do hledání
   const k = keyLetter(e);
   if (!k) return;
-  if (realMod || vctrl) {
+  if (realMod) {
     e.preventDefault();
     if (e.repeat) return;
-    setVctrl(false);
     shortcut(k, e.shiftKey || e.altKey);
   } else if (!(e.target instanceof HTMLInputElement)) {
-    kbFlash(k);
     notice('Drž klávesu Ctrl a k tomu zmáčkni písmeno. (Na Macu ⌘.)', 'info');
   }
 }
@@ -531,7 +481,7 @@ function beginChapter() {
   enterStep(0);
 }
 function enterStep(i) {
-  S.step = i; S.hintOn = false; kbHint(null);
+  S.step = i; S.hintOn = false;
   const c = curChapter();
   if (i >= c.steps.length) { chapterComplete(); return; }
   const st = c.steps[i];
@@ -564,7 +514,7 @@ function stepFail(msg) {
   if (S.step > 0) {
     S.step--;
     S.g = clone(S.hist[S.step]);
-    S.hintOn = false; kbHint(null);
+    S.hintOn = false;
     renderStory();
     floatText($('runner'), '−1 krok', 'bad');
     notice(`✗ ${msg} Jdeš o krok zpátky.`, 'bad');
@@ -578,20 +528,17 @@ function storyKey(k, extra) {
   const st = curStep();
   if (!st || Date.now() < S.lock) return;
   if (st.type !== 'key') {
-    kbFlash(k);
     const what = { select: 'Teď ještě žádnou zkratku – nejdřív označ text myší.', click: 'Teď ještě žádnou zkratku – nejdřív klikni na blikající rámeček.', type: 'Teď nepotřebuješ Ctrl – jen napiš slovo do hledání.' }[st.type];
     notice(what, 'info'); setMood('think');
     return;
   }
-  if (extra) { kbFlash(k); notice('Bez Shiftu a Altu – jen Ctrl a písmeno.', 'info'); return; }
+  if (extra) { notice('Bez Shiftu a Altu – jen Ctrl a písmeno.', 'info'); return; }
   if (k === st.key) {
-    kbFlash(k, 'ok');
     applyKey(S.g, k);
     keyEffect(k);
     renderPaper(); renderChrome();
     stepSuccess(document.querySelector(`.tb[data-k="${k}"]`));
   } else {
-    kbFlash(k, 'bad');
     stepFail(wrongText(k) + ' Tady potřebujeme něco jiného.');
   }
 }
@@ -653,7 +600,7 @@ function storyHint() {
   if (!st || screen !== 'story') return;
   S.hints++;
   $('stHints').textContent = S.hints;
-  if (st.type === 'key') { kbHint(st.key); notice(`💡 Na klávesnici dole svítí správné klávesy: ${SC[st.key].label}.`, 'info'); }
+  if (st.type === 'key') { notice(`💡 Správná zkratka je ${SC[st.key].label} – ${SC[st.key].hook}.`, 'info'); }
   else if (st.type === 'select') { S.hintOn = true; renderPaper(); notice('💡 Text, který máš označit, je v textu orámovaný. Táhni přes něj myší se zmáčknutým levým tlačítkem.', 'info'); }
   else if (st.type === 'click') { notice('💡 Hledej v dokumentu fialový blikající rámeček a klikni na něj.', 'info'); anim($('paper').querySelector('.slot.blink'), 'wiggle'); }
   else { notice(`💡 Klikni do pole „Najít“ nad dokumentem a napiš: ${st.target}`, 'info'); $('searchInput').focus(); }
@@ -713,7 +660,7 @@ function trainDots() {
 function trainTask() {
   if (T.i >= T.queue.length) { trainEnd(); return; }
   const k = T.queue[T.i];
-  T.hint = false; T.tTask = Date.now(); kbHint(null);
+  T.hint = false; T.tTask = Date.now();
   $('tIcon').textContent = SC[k].icon;
   $('tIcon').className = 't-icon ico-' + k;
   $('tTitle').textContent = TASK_TEXT[k][0];
@@ -732,7 +679,7 @@ function trainKey(k, extra) {
     const bonus = dt < 3000 ? 5 : dt < 6000 ? 2 : 0;
     const gain = (T.hint ? 5 : 10) + bonus;
     T.score += gain; T.lock = Date.now() + 450;
-    kbFlash(k, 'ok'); sfx.good();
+    sfx.good();
     $('tScore').textContent = T.score;
     notice(`✓ ${SC[k].label} – ${rand(PRAISE)} +${gain}${bonus === 5 ? ' ⚡ bleskově!' : ''}`, 'good');
     $('tSay').textContent = rand(['To je ono!', 'Rychlý jak blesk!', 'Další!', 'Pecka!']);
@@ -743,7 +690,7 @@ function trainKey(k, extra) {
     setTimeout(trainTask, 450);
   } else {
     T.mistakes++; T.score = Math.max(0, T.score - 3);
-    kbFlash(k, 'bad'); sfx.bad();
+    sfx.bad();
     $('tScore').textContent = T.score;
     notice(`✗ ${wrongText(k)} Zkus jinou. −3 body`, 'bad');
     $('tSay').textContent = 'Ups! Ale nevzdávej to.';
@@ -756,7 +703,7 @@ function trainHint() {
   if (screen !== 'train' || T.i >= T.queue.length) return;
   const k = T.queue[T.i];
   if (!T.hint) T.hints++;
-  T.hint = true; kbHint(k);
+  T.hint = true;
   notice(`💡 ${SC[k].label} – ${SC[k].hook}. Za tuhle zkratku dostaneš poloviční body.`, 'info');
 }
 function trainEnd() {
@@ -817,12 +764,11 @@ function renderHome() {
     return d;
   }));
 }
-function goHome() { clearStoryTimers(); clearInterval(T.timer); kbHint(null); renderHome(); show('home'); }
+function goHome() { clearStoryTimers(); clearInterval(T.timer); renderHome(); show('home'); }
 
 /* ---------- Napojení událostí ---------- */
 function init() {
   document.querySelectorAll('.klik-slot').forEach(s => { s.innerHTML = klikSVG(); });
-  buildKeyboards();
   renderToolbar();
   renderHome();
   $('soundBtn').textContent = data.sound ? '🔊' : '🔇';
@@ -860,8 +806,6 @@ function init() {
   $('searchInput').addEventListener('input', onSearchInput);
 
   document.addEventListener('keydown', onKeyDown, true);
-  document.addEventListener('keyup', e => { if (e.key === 'Control' || e.key === 'Meta') kbCtrl(false); });
-  window.addEventListener('blur', () => kbCtrl(false));
   window.addEventListener('resize', () => { if (screen === 'story') placeRunner(); });
 }
 init();

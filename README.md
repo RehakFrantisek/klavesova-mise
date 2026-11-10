@@ -29,7 +29,6 @@ Všech 12 zkratek, každá jednou, v náhodném pořadí. Běží stopky. 10 bod
 
 ## Ovládání a omezení
 - Zkratky se vyhodnocují podle `event.key`, takže respektují české rozložení QWERTZ (Ctrl+Z/Y). Na Macu funguje ⌘.
-- Pokud prohlížeč zkratku zachytí sám, stačí kliknout na **Ctrl na klávesnici na obrazovce** a pak zmáčknout písmeno.
 - Postup (hvězdy) a rekord se ukládají jen do `localStorage` daného prohlížeče. Nic se neodesílá.
 - Jde o simulaci, ne o skutečný Word – hra nic netiskne ani neukládá do souborů.
 
