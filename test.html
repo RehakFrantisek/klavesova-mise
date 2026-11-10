@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="cs"><head><meta charset="utf-8"><title>Test – Klávesová mise</title></head>
+<body>
+<iframe id="f" src="index.html" style="width:1280px;height:900px"></iframe>
+<pre id="out">RUNNING</pre>
+<script>
+/* Automatický test v prohlížeči: projde celý příběh (včetně chyb a kroků zpět) a celý trénink.
+   Spuštění: otevři test.html, nebo headless: msedge --headless --dump-dom file:///…/test.html */
+const out = document.getElementById('out');
+const log = [];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function ok(c, m) { if (!c) throw new Error('FAIL: ' + m); log.push('ok - ' + m); }
+document.getElementById('f').onload = async () => {
+  const w = document.getElementById('f').contentWindow, d = w.document, $ = id => d.getElementById(id);
+  try { w.localStorage.removeItem('klavesova-mise-v2'); } catch {}
+  w.eval("Object.assign(data,{stars:[0,0,0,0,0],best:null});renderHome()");
+  const key = (k, o = {}) => d.dispatchEvent(new w.KeyboardEvent('keydown', { key: k, ctrlKey: true, bubbles: true, cancelable: true, ...o }));
+  const S = w.eval('S'), T = w.eval('T');
+  const step = () => w.eval('curStep()');
+  const waitLock = async () => { while (Date.now() < w.eval('S.lock')) await sleep(30); await sleep(20); };
+  async function waitStepChange(prev, ch) { for (let i = 0; i < 200; i++) { if (w.eval('S.step') !== prev || w.eval('S.ch') !== ch || w.eval('screen') !== 'story') return; await sleep(25); } throw new Error('step did not advance'); }
+  async function select(id) {
+    const el = d.querySelector(`.part[data-id="${id}"]`);
+    const r = d.createRange(); r.selectNodeContents(el);
+    const s = w.getSelection(); s.removeAllRanges(); s.addRange(r);
+    $('paper').dispatchEvent(new w.MouseEvent('mouseup', { bubbles: true }));
+    await sleep(20);
+  }
+  async function doStep() {
+    await waitLock();
+    const st = step(), before = w.eval('S.step'), ch = w.eval('S.ch');
+    if (st.type === 'key') key(st.key);
+    else if (st.type === 'select') await select(st.target);
+    else if (st.type === 'click') d.querySelector(`.slot[data-id="${st.target}"]`).click();
+    else { const inp = $('searchInput'); inp.value = st.target; inp.dispatchEvent(new w.Event('input')); }
+    await waitStepChange(before, ch);
+  }
+  try {
+    ok(!$('home').classList.contains('hidden'), 'home screen visible');
+    ok(d.querySelectorAll('.chapter').length === 5, '5 chapters listed');
+    ok(d.querySelectorAll('.chapter:disabled').length === 4, 'only chapter 1 unlocked');
+
+    // Kapitola 1 s chybami
+    $('storyStart').click(); ok(!$('intro').classList.contains('hidden'), 'intro shown');
+    $('introGo').click(); ok(w.eval('S.step') === 0, 'chapter 1 step 0');
+    key('b'); await sleep(20); ok(w.eval('S.step') === 0 && w.eval('S.mistakes') === 0, 'shortcut during select step = info only');
+    await doStep(); ok(w.eval('S.g.sel') === 'nadpis', 'heading selected');
+    await waitLock(); key('i'); await sleep(20); ok(w.eval('S.step') === 0 && w.eval('S.mistakes') === 1, 'wrong key moves one step back');
+    ok(w.eval('S.g.sel') === null, 'selection reverted after step back');
+    await waitLock(); await doStep(); await doStep();
+    ok(w.eval('findPart(S.g,"nadpis").b') === true, 'heading is bold');
+    await waitLock(); await select('nadpis'); await sleep(20); ok(w.eval('S.step') === 2, 'wrong selection does not advance');
+    await waitLock(); await doStep(); await doStep();
+    ok(w.eval('S.g.clip') === 'hlavního nádraží', 'clipboard has copied text');
+    await doStep(); ok(d.querySelector('.slot.caret'), 'caret placed in slot');
+    await doStep(); ok(d.querySelector('[data-id="s1"]').textContent === 'hlavního nádraží', 'pasted into slot');
+    ok($('dirty').classList.contains('on'), 'document marked unsaved');
+    await doStep(); await sleep(900);
+    ok(!$('chapterDone').classList.contains('hidden'), 'chapter 1 done screen');
+    ok(w.eval('data.stars[0]') === 2, 'chapter 1: 1 mistake = 2 stars');
+
+    // Kapitola 2: vyjmutí, kýchnutí, zpět
+    $('doneNext').click(); $('introGo').click();
+    await doStep(); await doStep();
+    ok(!d.querySelector('[data-id="plavky"]'), 'plavky cut out');
+    await doStep(); await doStep();
+    ok(!d.querySelector('[data-id="plast"]'), 'sneeze deleted pláštěnka');
+    await doStep(); ok(d.querySelector('[data-id="plast"]') && d.querySelector('[data-id="s2"]').textContent === 'plavky', 'Ctrl+Z restores pláštěnka, plavky stay pasted');
+    while (w.eval('screen') === 'story') await doStep().catch(() => {});
+    await sleep(900); ok(w.eval('data.stars[1]') === 3, 'chapter 2: 3 stars');
+
+    // Kapitola 3: zpět/znovu
+    $('doneNext').click(); $('introGo').click();
+    for (let i = 0; i < 5; i++) await doStep();
+    ok(w.eval('findPart(S.g,"tip").i') === true, 'tip italic');
+    await doStep(); ok(!w.eval('findPart(S.g,"tip").i'), 'Ctrl+Z removed italic');
+    await doStep(); ok(w.eval('findPart(S.g,"tip").i') === true, 'Ctrl+Y restored italic');
+    while (w.eval('screen') === 'story') await doStep().catch(() => {});
+    await sleep(900);
+
+    // Kapitola 4: hledání
+    $('doneNext').click(); $('introGo').click();
+    await doStep(); ok(!$('searchBar').classList.contains('hidden'), 'search bar opened');
+    await doStep(); ok(d.querySelector('#paper mark'), 'search result highlighted');
+    while (w.eval('screen') === 'story') await doStep().catch(() => {});
+    await sleep(900);
+
+    // Kapitola 5: vložení referátu a tisk
+    $('doneNext').click(); $('introGo').click();
+    await doStep(); await doStep();
+    ok(d.querySelector('[data-id="s5"]').textContent.includes('Hrad Karlštejn'), 'referát pasted into newspaper');
+    for (let i = 0; i < 4; i++) await doStep();
+    await waitLock(); key('p'); await sleep(200); ok(!$('printer').classList.contains('hidden'), 'printer animation');
+    await sleep(3800); ok(!$('chapterDone').classList.contains('hidden'), 'chapter 5 done');
+    $('doneNext').click(); ok(!$('storyEnd').classList.contains('hidden'), 'story finale');
+    ok(w.eval('data.stars.every(s=>s>0)'), 'all chapters have stars');
+
+    // Trénink
+    $('finalTrain').click(); ok(w.eval('screen') === 'train', 'training started');
+    const first = w.eval('T.queue[0]'); const wrong = 'cvxazysfbiup'.split('').find(k => k !== first);
+    key(wrong); ok(w.eval('T.mistakes') === 1 && w.eval('T.i') === 0, 'training wrong key: mistake, same task');
+    key(first, { shiftKey: true }); ok(w.eval('T.i') === 0, 'shift ignored');
+    $('tHint').click(); ok(d.querySelector('.kb .key.hint'), 'hint highlights key');
+    for (let i = 0; i < 12; i++) { while (Date.now() < w.eval('T.lock')) await sleep(30); key(w.eval('T.queue[T.i]')); await sleep(480); }
+    await sleep(100);
+    ok(w.eval('screen') === 'trainEnd', 'training ended after 12');
+    ok(w.eval('T.score') > 0 && w.eval('T.hints') === 1, 'score counted, 1 hint');
+    ok(w.eval('data.best') !== null, 'record saved');
+
+    // Virtuální Ctrl
+    $('teAgain').click();
+    const k0 = w.eval('T.queue[0]');
+    d.querySelector('#train .kb [data-k="ctrl"]').click();
+    d.dispatchEvent(new w.KeyboardEvent('keydown', { key: k0, bubbles: true, cancelable: true }));
+    ok(w.eval('T.i') === 1, 'virtual Ctrl + key works');
+    d.querySelector('[data-home]').click();
+    w.eval('goHome()'); ok(w.eval('screen') === 'home', 'back home');
+    ok(d.querySelectorAll('.chapter:disabled').length === 0, 'all chapters unlocked');
+    log.push('PASS');
+  } catch (e) { log.push(String(e && e.stack || e)); }
+  out.textContent = log.join('\n');
+  out.dataset.done = '1';
+};
+</script>
+</body></html>

@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#6c4cff">
+  <meta name="description" content="Klávesová mise – česká hra pro děti na procvičení klávesových zkratek. Příběh s myšákem Klikem a trénink na čas.">
+  <title>Klávesová mise – Klik a školní výlet</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E⌨️%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="bg" aria-hidden="true">
+  <span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span>
+  <span class="cap c1">Ctrl</span><span class="cap c2">C</span><span class="cap c3">V</span><span class="cap c4">Z</span><span class="cap c5">S</span><span class="cap c6">B</span>
+</div>
+
+<header class="top">
+  <button class="brand" id="logoBtn" title="Zpět do menu">
+    <span class="logo-keys"><kbd>Ctrl</kbd><b>+</b><kbd>K</kbd></span>
+    <span class="brand-text"><strong>Klávesová mise</strong><small>Zkratky hravě</small></span>
+  </button>
+  <button class="icon-btn" id="soundBtn" aria-pressed="true" title="Zvuk">🔊</button>
+</header>
+
+<main>
+  <!-- ÚVOD -->
+  <section id="home" class="screen">
+    <div class="hero">
+      <div class="hero-text">
+        <span class="pill">Informatika · klávesové zkratky</span>
+        <h1>Pomoz Klikovi zachránit <span class="hl">školní výlet!</span></h1>
+        <p>Klik je počítačová myš ze školní počítačovky. Třída 7.B jede na Karlštejn, ale v dokumentech je zmatek. Označuj text, mačkej správné zkratky a posouvej se dál. Splet se – a vrátíš se o krok zpátky.</p>
+      </div>
+      <div class="hero-art"><div class="klik-slot" data-size="big"></div><div class="hero-bubble">Ahoj! Půjdeš do toho se mnou?</div></div>
+    </div>
+
+    <div class="cards">
+      <article class="card story-card">
+        <div class="card-head"><span class="card-ico">📖</span><div><h2>Příběh: Klik a školní výlet</h2><p>5 kapitol · 37 kroků · bez časového limitu</p></div></div>
+        <div id="chapterList" class="chapter-list"></div>
+        <button id="storyStart" class="btn big">Začít příběh →</button>
+      </article>
+      <article class="card train-card">
+        <div class="card-head"><span class="card-ico">⏱️</span><div><h2>Trénink zkratek</h2><p>12 zkratek · každá jednou · na čas a body</p></div></div>
+        <ul class="train-info">
+          <li>⚡ Čím rychleji, tím víc bodů</li>
+          <li>❌ Špatná zkratka = −3 body</li>
+          <li>💡 Nápověda = poloviční body</li>
+        </ul>
+        <div id="trainBest" class="best"></div>
+        <button id="trainStart" class="btn big alt">Spustit trénink →</button>
+      </article>
+    </div>
+
+    <details class="cheat" open>
+      <summary>📚 Tahák – 12 zkratek, které se naučíš</summary>
+      <div id="cheatsheet" class="cheat-grid"></div>
+      <p class="tiny">Na Macu místo Ctrl použij ⌘. Některé programy mohou mít zkratky trochu jinak.</p>
+    </details>
+  </section>
+
+  <!-- ÚVOD KAPITOLY -->
+  <section id="intro" class="screen hidden">
+    <div class="scene card">
+      <div class="scene-top"><span id="introNum" class="pill"></span></div>
+      <div class="scene-art"><span id="introEmoji" class="scene-emoji"></span><div class="klik-slot" data-size="big"></div></div>
+      <h2 id="introTitle"></h2>
+      <div class="bubble big-bubble"><p id="introText"></p></div>
+      <div class="rules"><span>✅ Správně = krok dopředu</span><span>❌ Špatná zkratka = krok zpátky</span></div>
+      <div class="row center"><button id="introGo" class="btn big">Jdeme na to →</button><button class="btn ghost" data-home>Do menu</button></div>
+    </div>
+  </section>
+
+  <!-- PŘÍBĚH -->
+  <section id="story" class="screen hidden">
+    <div class="story-head card">
+      <div id="chapterPills" class="chapter-pills"></div>
+      <div class="track-wrap"><div id="track" class="track"></div></div>
+    </div>
+
+    <div class="story-grid">
+      <div class="editor card" id="editor">
+        <div class="titlebar"><span class="dots"><i></i><i></i><i></i></span><span id="fileName" class="file"></span><span id="dirty" class="dirty" title="Neuloženo">●</span></div>
+        <div id="toolbar" class="toolbar"></div>
+        <div id="searchBar" class="searchbar hidden"><span>🔍 Najít:</span><input id="searchInput" type="text" autocomplete="off" spellcheck="false" placeholder="napiš hledané slovo…"></div>
+        <div class="paper-wrap"><div id="paper" class="paper"></div></div>
+        <div id="clipboard" class="clipboard"><span class="clip-ico">📋</span><span class="clip-label">Schránka:</span><span id="clipText" class="clip-text">prázdná</span></div>
+        <div id="toast" class="toast"></div>
+        <div id="printer" class="printer hidden" aria-hidden="true">
+          <div class="pr-paper-in"></div>
+          <div class="pr-body"><span class="pr-light"></span></div>
+          <div class="pr-sheet"><b>Noviny 7.B</b><i></i><i></i><i></i><i></i></div>
+        </div>
+      </div>
+
+      <aside class="guide">
+        <div class="card klik-card">
+          <div class="klik-slot" data-size="mid"></div>
+          <div class="bubble"><p id="say" aria-live="polite"></p></div>
+        </div>
+        <div id="taskChip" class="task-chip"></div>
+        <div id="storyFeedback" class="feedback" aria-live="polite"></div>
+        <div class="row">
+          <button id="storyHint" class="btn soft">💡 Nápověda</button>
+          <button class="btn ghost" data-home>Do menu</button>
+        </div>
+        <div class="mini-stats"><span>Kapitola: <b id="stMistakes">0</b> chyb</span><span>Nápovědy: <b id="stHints">0</b></span></div>
+      </aside>
+    </div>
+    <div class="kb-wrap card"><div class="kb" data-kb></div><p class="tiny">Prohlížeč zkratku zachytí sám? Klikni na <b>Ctrl</b> na obrazovce a pak zmáčkni písmeno.</p></div>
+  </section>
+
+  <!-- KONEC KAPITOLY -->
+  <section id="chapterDone" class="screen hidden">
+    <div class="scene card done">
+      <span class="pill" id="doneNum"></span>
+      <div class="scene-art"><div class="klik-slot" data-size="big"></div><span id="doneEmoji" class="scene-emoji"></span></div>
+      <h2 id="doneTitle"></h2>
+      <div id="doneStars" class="stars"></div>
+      <div class="bubble big-bubble"><p id="doneText"></p></div>
+      <p id="doneStats" class="muted"></p>
+      <div class="row center"><button id="doneNext" class="btn big">Další kapitola →</button><button id="doneAgain" class="btn soft">Zkusit znovu</button><button class="btn ghost" data-home>Do menu</button></div>
+    </div>
+  </section>
+
+  <!-- KONEC PŘÍBĚHU -->
+  <section id="storyEnd" class="screen hidden">
+    <div class="scene card done finale">
+      <span class="pill">🎉 Příběh dokončen</span>
+      <div class="scene-art"><span class="scene-emoji">🏰</span><div class="klik-slot" data-size="big"></div><span class="scene-emoji">🚂</span></div>
+      <h2>Výlet je zachráněn!</h2>
+      <div id="finalStars" class="stars"></div>
+      <div class="bubble big-bubble"><p id="finalText"></p></div>
+      <div class="row center"><button id="finalTrain" class="btn big alt">Zkusit trénink na čas →</button><button class="btn ghost" data-home>Do menu</button></div>
+    </div>
+  </section>
+
+  <!-- TRÉNINK -->
+  <section id="train" class="screen hidden">
+    <div class="train-stats">
+      <div class="stat card"><span>⏱️ Čas</span><strong id="tTime">0,0 s</strong></div>
+      <div class="stat card"><span>⭐ Body</span><strong id="tScore">0</strong></div>
+      <div class="stat card"><span>🎯 Zkratka</span><strong id="tCount">1 / 12</strong></div>
+    </div>
+    <div id="tDots" class="t-dots"></div>
+    <div class="train-main">
+      <div id="tCard" class="t-card card">
+        <span id="tIcon" class="t-icon"></span>
+        <small>CO POTŘEBUJEŠ UDĚLAT</small>
+        <h2 id="tTitle"></h2>
+        <p id="tText"></p>
+      </div>
+      <div class="train-side">
+        <div class="card klik-card small"><div class="klik-slot" data-size="mid"></div><div class="bubble"><p id="tSay">Drž Ctrl a zmáčkni správné písmeno!</p></div></div>
+        <div id="tFeedback" class="feedback" aria-live="polite"></div>
+        <div class="row"><button id="tHint" class="btn soft">💡 Nápověda</button><button id="tQuit" class="btn ghost">Ukončit</button></div>
+      </div>
+    </div>
+    <div class="kb-wrap card"><div class="kb" data-kb></div><p class="tiny">Prohlížeč zkratku zachytí sám? Klikni na <b>Ctrl</b> na obrazovce a pak zmáčkni písmeno.</p></div>
+  </section>
+
+  <!-- KONEC TRÉNINKU -->
+  <section id="trainEnd" class="screen hidden">
+    <div class="scene card done">
+      <span class="pill">🏁 Trénink dokončen</span>
+      <div class="scene-art"><div class="klik-slot" data-size="big"></div></div>
+      <h2 id="teTitle">Hotovo!</h2>
+      <div id="teStars" class="stars"></div>
+      <div class="result-grid">
+        <div><span>Čas</span><b id="teTime"></b></div>
+        <div><span>Body</span><b id="teScore"></b></div>
+        <div><span>Chyby</span><b id="teMist"></b></div>
+        <div><span>Nápovědy</span><b id="teHints"></b></div>
+      </div>
+      <p id="teRecord" class="record"></p>
+      <div class="name-row"><label for="teName">Jméno pro paní učitelku (nepovinné):</label><input id="teName" maxlength="24" placeholder="např. Terka z 7.B" autocomplete="off"></div>
+      <p id="teSummary" class="summary"></p>
+      <div class="row center"><button id="teAgain" class="btn big alt">Hrát znovu</button><button id="teCopy" class="btn soft">📋 Zkopírovat výsledek</button><button class="btn ghost" data-home>Do menu</button></div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">Klávesová mise · funguje offline, bez registrace · výsledky zůstávají jen v tomto prohlížeči</footer>
+<script src="app.js"></script>
+</body>
+</html>
