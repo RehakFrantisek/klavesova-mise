@@ -1,8 +1,9 @@
 'use strict';
-/* Klávesová mise – Klik a školní výlet
+/* Klávesová mise – Kurzík a školní výlet
    Příběh: simulovaný textový editor, ve kterém děti označují text myší,
    klikají na místo vložení a mačkají zkratky. Správně = krok vpřed,
-   špatná zkratka = krok zpět (dokument se vrátí do předchozího stavu). */
+   špatná zkratka = krok zpět (dokument se vrátí do předchozího stavu).
+   Kapitola 6 „Bez myši“: kurzor a označení textu jen klávesnicí (šipky, Ctrl, Shift, Home, End). */
 
 const $ = id => document.getElementById(id);
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -45,7 +46,7 @@ const REFERAT = () => [
 const CHAPTERS = [
   {
     title: 'Pozvánka na výlet', emoji: '✉️', file: 'pozvanka.docx',
-    intro: 'Ahoj, já jsem Klik – počítačová myš ze školní počítačovky. Třída 7.B jede v pátek na výlet na Karlštejn, jenže v dokumentech je hrozný zmatek. Myší to sám nestihnu, ale ty umíš klávesové zkratky. Pomůžeš mi? Začneme pozvánkou.',
+    intro: 'Ahoj, já jsem Kurzík – počítačová myš ze školní počítačovky. Třída 7.B jede v pátek na výlet na Karlštejn, jenže v dokumentech je hrozný zmatek. Myší to sám nestihnu, ale ty umíš klávesové zkratky. Pomůžeš mi? Začneme pozvánkou.',
     outro: 'Pozvánka visí na nástěnce a všichni už vědí, kde je sraz. Jdeme dál!',
     doc: () => [
       H({ id: 'nadpis', text: 'Pozvánka na výlet' }),
@@ -130,7 +131,7 @@ const CHAPTERS = [
   },
   {
     title: 'Školní noviny', emoji: '📰', file: 'noviny-7B.docx',
-    intro: 'Poslední úkol! Do zítřka musí být hotové noviny 7.B. Referát máme ve schránce, stačí ho vložit, vyladit titulek a všechno vytisknout.',
+    intro: 'Velký úkol! Do zítřka musí být hotové noviny 7.B. Referát máme ve schránce, stačí ho vložit, vyladit titulek a všechno vytisknout.',
     outro: 'Noviny voní tiskárnou, pozvánka visí, bábovky jsou snědené a v pátek se jede na Karlštejn!',
     clip: () => docText(REFERAT()),
     doc: () => [
@@ -147,10 +148,47 @@ const CHAPTERS = [
       { type: 'key', key: 'b', say: 'Tučně!' },
       { type: 'key', key: 'u', say: 'A ještě podtrhnout.' },
       { type: 'key', key: 's', say: 'Noviny jsou hotové. Ulož je.' },
-      { type: 'key', key: 'p', say: 'Úplně poslední krok: vytiskneme je pro celou třídu!' }
+      { type: 'key', key: 'p', say: 'Poslední krok: vytiskneme je pro celou třídu!' }
+    ]
+  },
+  {
+    title: 'Bez myši', emoji: '🪫', file: 'zprava-z-vyletu.docx',
+    intro: 'Výlet byl úžasný! Jenže já jsem si na hradě úplně vybil baterku a teď se nemůžu ani hnout. Do třídní kroniky musí zpráva z výletu a je v ní pár chyb. Oprav ji jen klávesnicí – šipky, Home, End a Shift budou tvoje myš.',
+    outro: 'Zpráva je v kronice a bez jediného kliknutí myší! Až se nabiju, naučíš mě to taky?',
+    doc: () => [
+      H('Zpráva z výletu'),
+      P({ id: 'line', line: true, text: 'Výlet na Karlštejn byl byl skvělý a cesta do kopce nás vůbec neunavila.', caret: 0, anchor: 0 }),
+      P('Zapsala kronikářka 7.B')
+    ],
+    steps: [
+      { type: 'nav', say: 'Kurzor bliká na začátku řádku se zprávou. Skoč na úplný konec řádku – stačí jedna klávesa.',
+        hint: 'Klávesa End skočí na konec řádku.', keys: [{ key: 'End' }],
+        ok: p => p.caret === p.text.length && p.anchor === p.caret },
+      { type: 'nav', say: 'Paráda! A teď zase na úplný začátek řádku.',
+        hint: 'Klávesa Home skočí na začátek řádku.', keys: [{ key: 'Home' }],
+        ok: p => p.caret === 0 && p.anchor === 0 },
+      { type: 'nav', say: 'Ve větě je dvakrát „byl“. Dojdi kurzorem před to druhé „byl“. Šipka s klávesou Ctrl skáče po celých slovech.',
+        hint: 'Drž Ctrl a mačkej šipku doprava →, dokud kurzor nebliká před druhým „byl“.', keys: [1, 2, 3, 4].map(() => ({ key: 'ArrowRight', ctrl: true })),
+        ok: p => p.caret === DUP && p.anchor === DUP && p.text.startsWith('Výlet na Karlštejn byl byl') },
+      { type: 'nav', say: 'Teď to druhé „byl“ označ. Drž Shift – kurzor za sebou nechá modrou stopu.',
+        hint: 'Shift + Ctrl + → označí celé slovo. Jde to i po písmenech: Shift + → třikrát.', keys: [{ key: 'ArrowRight', ctrl: true, shift: true }],
+        ok: p => Math.min(p.anchor, p.caret) === DUP && lineSelText(p).trim() === 'byl' },
+      { type: 'nav', say: 'Je označené. Smaž ho.',
+        hint: 'Delete nebo Backspace smaže všechno, co je označené.', keys: [{ key: 'Delete' }],
+        ok: p => p.text === FIXED },
+      { type: 'nav', say: 'Zpráva je nadšená, tak na konec patří vykřičník místo tečky. Skoč na konec, smaž tečku a napiš vykřičník.',
+        hint: 'End, pak Backspace (smaže tečku), pak vykřičník – na české klávesnici Shift + § (vedle ů).', keys: [{ key: 'End' }, { key: 'Backspace' }, { key: '!', shift: true }],
+        ok: p => p.text === FIXED.replace(/\.$/, '!') },
+      { type: 'nav', say: 'Ještě celou větu zvýrazníme. Nejdřív ji celou označ – bez myši.',
+        hint: 'Kurzor je na konci řádku: drž Shift a zmáčkni Home. (Nebo Home a pak Shift + End.)', keys: [{ key: 'End' }, { key: 'Home', shift: true }],
+        ok: p => lineSelText(p) === p.text, after: g => { g.sel = 'line'; } },
+      { type: 'key', key: 'b', say: 'Celá věta svítí modře. Udělej ji tučně.' },
+      { type: 'key', key: 's', say: 'Hotovo! Ulož zprávu do kroniky.' }
     ]
   }
 ];
+const DUP = 'Výlet na Karlštejn byl byl'.length - 3;
+const FIXED = 'Výlet na Karlštejn byl skvělý a cesta do kopce nás vůbec neunavila.';
 
 const TASK_TEXT = {
   c: ['Zkopíruj text', 'Stejnou větu chceš použít i jinde, ale tady má zůstat taky.'],
@@ -171,8 +209,12 @@ const PRAISE = ['Paráda!', 'Výborně!', 'Přesně tak!', 'Jde ti to!', 'Super!
 
 /* ---------- Uložení postupu (jen v tomto prohlížeči) ---------- */
 const STORE_KEY = 'klavesova-mise-v2';
-function load() { try { return Object.assign({ stars: [0, 0, 0, 0, 0], best: null, sound: true }, JSON.parse(localStorage.getItem(STORE_KEY)) || {}); } catch { return { stars: [0, 0, 0, 0, 0], best: null, sound: true }; } }
+const noStars = () => CHAPTERS.map(() => 0);
+function load() { try { return Object.assign({ stars: noStars(), best: null, sound: true }, JSON.parse(localStorage.getItem(STORE_KEY)) || {}); } catch { return { stars: noStars(), best: null, sound: true }; } }
 const data = load();
+// starší uložený postup má jen 5 kapitol – doplníme nuly, hvězdy zůstanou
+if (!Array.isArray(data.stars)) data.stars = noStars();
+while (data.stars.length < CHAPTERS.length) data.stars.push(0);
 function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(data)); } catch { /* bez úložiště se hraje dál */ } }
 
 /* ---------- Zvuky ---------- */
@@ -195,7 +237,7 @@ const sfx = {
   print() { for (let i = 0; i < 8; i++) tone(180 + (i % 2) * 40, 0.08, 'sawtooth', i * 0.14, 0.02); }
 };
 
-/* ---------- Klik (SVG postavička) ---------- */
+/* ---------- Kurzík (SVG postavička) ---------- */
 function klikSVG() {
   return `<svg class="klik" data-mood="happy" viewBox="0 0 140 175" aria-hidden="true">
   <path class="klik-cable" d="M70 22 C70 2 98 2 110 12 S128 30 136 14" fill="none" stroke="#6c4cff" stroke-width="5" stroke-linecap="round"/>
@@ -262,6 +304,7 @@ function keyLetter(e) {
 }
 function onKeyDown(e) {
   if (screen !== 'story' && screen !== 'train') return;
+  if (screen === 'story' && navKey(e)) return; // kapitola Bez myši
   const realMod = e.ctrlKey || e.metaKey;
   if (screen === 'story' && e.target === $('searchInput') && !realMod) return; // psaní do hledání
   const k = keyLetter(e);
@@ -373,6 +416,11 @@ function renderPaper() {
         if (g.cursor === p.id) { sp.classList.add('caret'); sp.textContent = '​'; }
         else { sp.textContent = isTarget ? (p.ph || 'klikni sem') : ' '; if (isTarget) sp.classList.add('blink'); }
         sp.addEventListener('click', e => { e.stopPropagation(); onSlotClick(p.id); });
+      } else if (p.line) {
+        sp.className = 'part';
+        if (p.b) sp.classList.add('fb');
+        if (g.sel === 'ALL' || g.sel === p.id) sp.classList.add('sel');
+        renderLine(sp, p);
       } else {
         sp.className = 'part';
         if (p.b) sp.classList.add('fb');
@@ -439,7 +487,8 @@ const TYPE_CHIP = {
   select: ['🖱️', 'Označ text myší', 'Táhni myší přes text, nebo na slovo dvakrát klikni.'],
   click: ['👆', 'Klikni do textu', 'Klikni na blikající rámeček.'],
   key: ['⌨️', 'Zmáčkni zkratku', 'Drž Ctrl a zmáčkni správné písmeno.'],
-  type: ['✍️', 'Napiš slovo', 'Piš normálně, bez Ctrl.']
+  type: ['✍️', 'Napiš slovo', 'Piš normálně, bez Ctrl.'],
+  nav: ['⌨️', 'Jen klávesnice', 'Šipky, Home, End, Shift. Spletl(a) ses? Ctrl + Z vrátí krok.']
 };
 function renderChip() {
   const t = TYPE_CHIP[curStep().type];
@@ -528,7 +577,7 @@ function storyKey(k, extra) {
   const st = curStep();
   if (!st || Date.now() < S.lock) return;
   if (st.type !== 'key') {
-    const what = { select: 'Teď ještě žádnou zkratku – nejdřív označ text myší.', click: 'Teď ještě žádnou zkratku – nejdřív klikni na blikající rámeček.', type: 'Teď nepotřebuješ Ctrl – jen napiš slovo do hledání.' }[st.type];
+    const what = { select: 'Teď ještě žádnou zkratku – nejdřív označ text myší.', click: 'Teď ještě žádnou zkratku – nejdřív klikni na blikající rámeček.', type: 'Teď nepotřebuješ Ctrl – jen napiš slovo do hledání.', nav: 'Teď žádnou zkratku s písmenem – pohybuj kurzorem šipkami, Home a End.' }[st.type];
     notice(what, 'info'); setMood('think');
     return;
   }
@@ -602,6 +651,7 @@ function storyHint() {
   $('stHints').textContent = S.hints;
   if (st.type === 'key') { notice(`💡 Správná zkratka je ${SC[st.key].label} – ${SC[st.key].hook}.`, 'info'); }
   else if (st.type === 'select') { S.hintOn = true; renderPaper(); notice('💡 Text, který máš označit, je v textu orámovaný. Táhni přes něj myší se zmáčknutým levým tlačítkem.', 'info'); }
+  else if (st.type === 'nav') { notice('💡 ' + st.hint, 'info'); }
   else if (st.type === 'click') { notice('💡 Hledej v dokumentu fialový blikající rámeček a klikni na něj.', 'info'); anim($('paper').querySelector('.slot.blink'), 'wiggle'); }
   else { notice(`💡 Klikni do pole „Najít“ nad dokumentem a napiš: ${st.target}`, 'info'); $('searchInput').focus(); }
 }
@@ -635,10 +685,85 @@ function renderStars(el, n, max = 3) {
   }
 }
 function storyFinale() {
-  const total = data.stars.reduce((a, b) => a + b, 0);
-  renderStars($('finalStars'), total, 15);
-  $('finalText').textContent = `Noviny voní tiskárnou, pozvánka visí, bábovky jsou snědené a v pátek se jede na Karlštejn! Bez tebe bych to nezvládl. Máš ${total} z 15 hvězd${total === 15 ? ' – jsi opravdový mistr zkratek!' : '. Zkus některé kapitoly zahrát bez chyby a posbírej všechny!'}`;
+  const total = data.stars.reduce((a, b) => a + b, 0), max = CHAPTERS.length * 3;
+  renderStars($('finalStars'), total, max);
+  $('finalText').textContent = `Pozvánka visí, bábovky jsou snědené, noviny vytištěné a zpráva z výletu je v kronice! Bez tebe bych to nezvládl. Máš ${total} z ${max} hvězd${total === max ? ' – jsi opravdový mistr zkratek!' : '. Zkus některé kapitoly zahrát bez chyby a posbírej všechny!'}`;
   show('storyEnd'); sfx.win(); rain(); setTimeout(rain, 900);
+}
+
+/* =================================================================
+   KAPITOLA BEZ MYŠI: kurzor a označení textu jen klávesnicí
+   ================================================================= */
+/* Řádek s id 'line' má vlastní kurzor (caret) a začátek výběru (anchor).
+   Šipky (s Ctrl po slovech, se Shiftem označují), Home/End, Backspace/Delete a psaní znaků.
+   Krok typu 'nav' je splněný, jakmile ok(řádek) vrátí true – nezáleží na cestě.
+   Ctrl + Z v takovém kroku vrátí řádek, jak byl na začátku kroku (bez chyby). */
+const lineSel = p => [Math.min(p.anchor, p.caret), Math.max(p.anchor, p.caret)];
+const lineSelText = p => { const [a, b] = lineSel(p); return p.text.slice(a, b); };
+function wordRight(t, i) { while (i < t.length && t[i] !== ' ') i++; while (i < t.length && t[i] === ' ') i++; return i; }
+function wordLeft(t, i) { while (i > 0 && t[i - 1] === ' ') i--; while (i > 0 && t[i - 1] !== ' ') i--; return i; }
+function lineInsert(p, s) {
+  const [a, b] = lineSel(p);
+  p.text = p.text.slice(0, a) + s + p.text.slice(b);
+  p.caret = p.anchor = a + s.length;
+}
+function navKey(e) {
+  const st = curStep();
+  if (!st || st.type !== 'nav') return false;
+  const p = findPart(S.g, 'line');
+  if (!p) return false;
+  const ctrl = e.ctrlKey || e.metaKey, altgr = e.ctrlKey && e.altKey;
+  const k = e.key;
+  const move = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(k);
+  const del = k === 'Backspace' || k === 'Delete';
+  const char = k && k.length === 1 && (!ctrl || altgr);
+  const undo = ctrl && !altgr && keyLetter(e) === 'z';
+  if (!move && !del && !char && !undo) return false; // ostatní zkratky řeší storyKey
+  e.preventDefault();
+  if (Date.now() < S.lock) return true;
+  if (undo) {
+    S.g = clone(S.hist[S.step]);
+    renderPaper();
+    notice('↩️ Řádek je zase jako na začátku kroku. Zkus to znovu.', 'info');
+    return true;
+  }
+  const t = p.text, n = t.length, [a, b] = lineSel(p);
+  if (move) {
+    let c = p.caret;
+    if (k === 'Home' || k === 'ArrowUp') c = 0;
+    else if (k === 'End' || k === 'ArrowDown') c = n;
+    else if (k === 'ArrowLeft') c = ctrl ? wordLeft(t, c) : (!e.shiftKey && a !== b ? a : Math.max(0, c - 1));
+    else c = ctrl ? wordRight(t, c) : (!e.shiftKey && a !== b ? b : Math.min(n, c + 1));
+    p.caret = c;
+    if (!e.shiftKey) p.anchor = c;
+  } else if (del) {
+    if (a !== b) lineInsert(p, '');
+    else if (k === 'Backspace' && a > 0) { p.text = t.slice(0, a - 1) + t.slice(a); p.caret = p.anchor = a - 1; }
+    else if (k === 'Delete' && a < n) p.text = t.slice(0, a) + t.slice(a + 1);
+    p.text = p.text.replace(/ {2,}/g, ' ');
+    p.caret = p.anchor = Math.min(p.caret, p.text.length);
+    S.g.saved = false;
+  } else {
+    lineInsert(p, k);
+    S.g.saved = false;
+  }
+  renderPaper(); renderChrome();
+  if (st.ok(p)) {
+    if (st.after) st.after(S.g);
+    renderPaper();
+    stepSuccess(document.querySelector('.kcaret') || document.querySelector('[data-id="line"]'));
+  }
+  return true;
+}
+function renderLine(sp, p) {
+  const [a, b] = lineSel(p);
+  const caret = () => { const c = document.createElement('span'); c.className = 'kcaret'; c.setAttribute('aria-hidden', 'true'); return c; };
+  sp.classList.add('kline');
+  sp.append(document.createTextNode(p.text.slice(0, a)));
+  if (p.caret === a) sp.append(caret());
+  if (a !== b) { const s = document.createElement('span'); s.className = 'ksel'; s.textContent = p.text.slice(a, b); sp.append(s); }
+  if (p.caret === b && a !== b) sp.append(caret());
+  sp.append(document.createTextNode(p.text.slice(b)));
 }
 
 /* =================================================================
@@ -660,7 +785,7 @@ function trainDots() {
 function trainTask() {
   if (T.i >= T.queue.length) { trainEnd(); return; }
   const k = T.queue[T.i];
-  T.hint = false; T.tTask = Date.now();
+  T.hint = false; T.tTask = Date.now(); T.lock = 0;
   $('tIcon').textContent = SC[k].icon;
   $('tIcon').className = 't-icon ico-' + k;
   $('tTitle').textContent = TASK_TEXT[k][0];
@@ -678,7 +803,9 @@ function trainKey(k, extra) {
     const dt = Date.now() - T.tTask;
     const bonus = dt < 3000 ? 5 : dt < 6000 ? 2 : 0;
     const gain = (T.hint ? 5 : 10) + bonus;
-    T.score += gain; T.lock = Date.now() + 450;
+    // Zamčeno, dokud trainTask() neukáže další kartu – jinak by nápověda
+    // v mezičase radila zkratku k další úloze, zatímco je vidět ještě ta stará.
+    T.score += gain; T.lock = Infinity;
     sfx.good();
     $('tScore').textContent = T.score;
     notice(`✓ ${SC[k].label} – ${rand(PRAISE)} +${gain}${bonus === 5 ? ' ⚡ bleskově!' : ''}`, 'good');
@@ -700,7 +827,7 @@ function trainKey(k, extra) {
   }
 }
 function trainHint() {
-  if (screen !== 'train' || T.i >= T.queue.length) return;
+  if (screen !== 'train' || T.i >= T.queue.length || Date.now() < T.lock) return;
   const k = T.queue[T.i];
   if (!T.hint) T.hints++;
   T.hint = true;
@@ -802,6 +929,7 @@ function init() {
   paper.addEventListener('click', e => {
     const st = curStep();
     if (screen === 'story' && st && st.type === 'click' && !e.target.closest('.slot') && !String(window.getSelection())) notice('Klikni přímo na blikající rámeček.', 'info');
+    if (screen === 'story' && st && st.type === 'nav') { notice('Myš teď odpočívá 🪫 – kurzor ovládej šipkami, Home a End.', 'info'); setMood('think'); }
   });
   $('searchInput').addEventListener('input', onSearchInput);
 

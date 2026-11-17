@@ -53,7 +53,7 @@ main{width:min(1180px,calc(100% - 32px));margin:0 auto}
 .screen{animation:screenIn .45s cubic-bezier(.2,.9,.3,1.2)}
 @keyframes screenIn{from{opacity:0;transform:translateY(18px) scale(.98)}}
 
-/* ---------- Klik ---------- */
+/* ---------- Kurzík ---------- */
 .klik{display:block;overflow:visible}
 .klik-slot[data-size="big"] .klik{width:150px;height:185px}
 .klik-slot[data-size="mid"] .klik{width:78px;height:98px}
@@ -190,6 +190,9 @@ main{width:min(1180px,calc(100% - 32px));margin:0 auto}
 .part.fu{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
 .part.pasted{white-space:pre-line}
 .part.fresh{animation:fresh 1.4s ease}
+.kline{white-space:pre-wrap}
+.ksel{background:#b7d3ff;box-shadow:0 0 0 1px #b7d3ff;border-radius:2px}
+.kcaret{display:inline-block;width:0;height:1.2em;margin:0 -1px;border-left:3px solid var(--violet);vertical-align:text-bottom;animation:caret 1s steps(1) infinite}
 .part.hint-target{outline:3px dashed var(--sun);outline-offset:3px;animation:hintPulse 1s infinite}
 @keyframes fresh{0%{background:#fff0a6;box-shadow:0 0 0 6px #fff0a6}100%{background:transparent;box-shadow:none}}
 @keyframes hintPulse{50%{outline-color:#ffb300}}
@@ -291,3 +294,13 @@ mark{background:#ffe066;border-radius:3px;padding:0 2px;animation:fresh 1.5s eas
   .stone{width:26px;height:26px;font-size:11px}
 }
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}}
+
+/* ---------- Portál Školeeq: odkaz zpět do katalogu (přidáno při integraci, nemění logiku hry) ---------- */
+.top-actions{display:flex;align-items:center;gap:10px}
+.portal-back{display:inline-flex;align-items:center;gap:6px;height:46px;padding:0 14px;border-radius:14px;border:2px solid #e2dcff;background:#fff;color:var(--muted);font-weight:800;font-size:14px;text-decoration:none;box-shadow:var(--shadow);white-space:nowrap}
+.portal-back:hover{color:var(--violet)}
+.portal-back:focus-visible{outline:3px solid var(--violet);outline-offset:3px}
+.foot a{color:var(--muted);font-weight:700}
+.foot a:focus-visible{outline:3px solid var(--violet);outline-offset:3px;border-radius:4px}
+/* úzké displeje: odkaz dostane vlastní řádek nad hlavičkou, původní rozložení hlavičky hry zůstane beze změny */
+@media (max-width:480px){.top{flex-wrap:wrap}.top-actions{display:contents}.portal-back{order:-1;flex:1 0 100%;height:auto;padding:4px 2px;margin-bottom:6px;border:0;background:none;box-shadow:none;font-size:13px}}
